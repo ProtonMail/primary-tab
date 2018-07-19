@@ -16,9 +16,9 @@ const setPrimary = () => console.log('I am the primary')
 const setSecondary = () => console.log('I am the secondary')
 
 const options = { expiry: 5000 }
-const { addListener, removeListener, initialValue, destroy } = await createPrimaryListener(options);
+const { addListener, removeListener, attempt, destroy } = await createPrimaryListener(options);
 
-initialValue ? setPrimary() : setSecondary();
+await attempt() ? setPrimary() : setSecondary();
 
 const primarySecondaryListener = (isMaster) => {
     console.log('Primary/secondary change');

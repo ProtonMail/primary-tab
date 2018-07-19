@@ -54,7 +54,7 @@ const init = async () => {
 
     const inIframe = window != window.top
 
-    const { addListener, removeListener, initialValue, destroy } = await createPrimaryListener({
+    const { addListener, removeListener, attempt, destroy } = createPrimaryListener({
         expiry: 5000,
         id: !inIframe ? windowId(sessionStorageKey) : undefined
     })
@@ -66,7 +66,7 @@ const init = async () => {
     const resultDiv = document.body.querySelector('#result')
     const stopButton = document.body.querySelector('#stop')
 
-    initialValue ? setPrimary(resultDiv) : setSecondary(resultDiv)
+    await attempt() ? setPrimary(resultDiv) : setSecondary(resultDiv)
 
     const primarySecondaryListener = (isPrimary) => {
         if (isPrimary) {

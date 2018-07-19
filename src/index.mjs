@@ -80,9 +80,9 @@ const tryPrimary = (db, name, objectStoreName, expiry, id, deadId) => {
  * @param {String} [keyName='primary'] - The name of the key in the IndexedDB store.
  * @param {Number} [expiry=10000] - Max time in ms before the primary tab will expire. Note: The function can't take longer than this.
  * @param {String} [localStorageKey='MSID'] - The local storage key name for which to notify the other tabs.
- * @returns {Promise<{initialValue: *, addListener: addListener, removeListener: removeListener, destroy: destroy, poll: poll}>}
+ * @returns {Promise<{attempt: attempt, addListener: addListener, removeListener: removeListener, destroy: destroy, poll: poll}>}
  */
-export default async ({ id = generateUid(), objectStoreName = 'locks', keyName = 'primary', dbName = 'primary', expiry = 30000, localStorageKey = 'MSID' } = {}) => {
+export default ({ id = generateUid(), objectStoreName = 'locks', keyName = 'primary', dbName = 'primary', expiry = 30000, localStorageKey = 'MSID' } = {}) => {
     let callbacks = []
     let cachedValue
     let intervalId
@@ -176,13 +176,11 @@ export default async ({ id = generateUid(), objectStoreName = 'locks', keyName =
         destroy(false)
     }
 
-    const initialValue = await attempt()
-
     window.addEventListener('storage', onStorage)
     window.addEventListener('beforeunload', onBeforeUnload)
 
     return {
-        initialValue,
+        attempt,
         poll: () => cachedValue,
         /**
          * Add a listener for primary/secondary changes.
