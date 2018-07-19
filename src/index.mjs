@@ -86,8 +86,7 @@ export default async ({ id = generateUid(), objectStoreName = 'locks', keyName =
     let callbacks = []
     let cachedValue
     let intervalId
-
-    const dbPromise = initDb({ dbName, objectStoreName })
+    let destroyed
 
     /**
      * Notify all the callbacks of the result.
@@ -101,12 +100,19 @@ export default async ({ id = generateUid(), objectStoreName = 'locks', keyName =
      * @returns {Promise}
      */
     const attempt = async (oldId) => {
-        const result = await tryPrimary(await dbPromise, keyName, objectStoreName, expiry, id, oldId)
+        if (destroyed) {
+            return
+        }
+
+        const db = await initDb({ dbName, objectStoreName })
+        const result = await tryPrimary(db, keyName, objectStoreName, expiry, id, oldId)
+        db.close()
 
         if (result === cachedValue) {
             return result
         }
         cachedValue = result
+        notify(result)
 
         intervalId && window.clearInterval(intervalId)
 
@@ -119,9 +125,34 @@ export default async ({ id = generateUid(), objectStoreName = 'locks', keyName =
             intervalId = window.setInterval(attempt, timeBeforeExpiration)
         }
 
-        notify(result)
-
         return result
+    }
+
+    /**
+     * Clean the master if it is the current ID.
+     * @returns {Promise}
+     */
+    const cleanMaster = async () => {
+        const db = await initDb({ dbName, objectStoreName })
+        await tryPrimary(db, keyName, objectStoreName, -Date.now(), id, id)
+        db.close()
+    }
+
+    /**
+     * Destroy the listener. Primarily used on the beforeunload event.
+     * When this happens, write the id to localStorage to trigger the onStorage event
+     * on the other windows, notifying that this ID has expired. Doing this because
+     * IndexedDB is not guaranteed to write on beforeunload.
+     * @param {Boolean} removeMaster If this WID is the current master, remove it
+     */
+    const destroy = (removeMaster = false) => {
+        window.removeEventListener('storage', onStorage)
+        window.removeEventListener('beforeunload', onBeforeUnload)
+        intervalId && window.clearInterval(intervalId)
+        localStorage.setItem(localStorageKey, id)
+        callbacks = []
+        destroyed = true
+        removeMaster && cleanMaster()
     }
 
     /**
@@ -138,23 +169,17 @@ export default async ({ id = generateUid(), objectStoreName = 'locks', keyName =
     }
 
     /**
-     * Destroy the listener. Primarily used on the beforeunload event.
-     * When this happens, write the id to localStorage to trigger the onStorage event
-     * on the other windows, notifying that this ID has expired. Doing this because
-     * IndexedDB is not guaranteed to write on beforeunload.
+     * Triggered for the onbefore unload event.
+     * Don't try to remove the current primary because it's not guaranteed to write.
      */
-    const destroy = () => {
-        window.removeEventListener('storage', onStorage)
-        window.removeEventListener('beforeunload', destroy)
-        intervalId && window.clearInterval(intervalId)
-        localStorage.setItem(localStorageKey, id)
-        callbacks = []
+    const onBeforeUnload = () => {
+        destroy(false)
     }
 
     const initialValue = await attempt()
 
     window.addEventListener('storage', onStorage)
-    window.addEventListener('beforeunload', destroy)
+    window.addEventListener('beforeunload', onBeforeUnload)
 
     return {
         initialValue,
@@ -175,6 +200,7 @@ export default async ({ id = generateUid(), objectStoreName = 'locks', keyName =
         },
         /**
          * Destroy this listener.
+         * @param {Boolean} removeMaster If this WID is the current master, remove it
          */
         destroy
     }
