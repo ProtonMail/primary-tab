@@ -179,27 +179,30 @@ export default ({ id = generateUid(), objectStoreName = 'locks', keyName = 'prim
     window.addEventListener('storage', onStorage)
     window.addEventListener('beforeunload', onBeforeUnload)
 
+    /**
+     * Remove a listener.
+     * @param {Function} cb
+     */
+    const removeListener = (cb) => {
+        callbacks = callbacks.filter((x) => x !== cb)
+    }
+
+    /**
+     * Add a listener for primary/secondary changes.
+     * @param {Function} cb
+     */
+    const addListener = (cb) => {
+        callbacks.push(cb)
+        return () => removeListener(cb);
+    }
+
+    const poll = () => cachedValue
+
     return {
         attempt,
-        poll: () => cachedValue,
-        /**
-         * Add a listener for primary/secondary changes.
-         * @param {Function} cb
-         */
-        addListener: (cb) => {
-            callbacks.push(cb)
-        },
-        /**
-         * Remove a listener.
-         * @param {Function} cb
-         */
-        removeListener: (cb) => {
-            callbacks = callbacks.filter((x) => x !== cb)
-        },
-        /**
-         * Destroy this listener.
-         * @param {Boolean} removeMaster If this WID is the current master, remove it
-         */
+        poll,
+        addListener,
+        removeListener,
         destroy
     }
 }
