@@ -1,4 +1,4 @@
-import createPrimarySecondaryListener from '../src/index'
+import createPrimarySecondaryListener from '../src/index.esm'
 
 const delay = (time) => new Promise((resolve) => setTimeout(resolve, time))
 

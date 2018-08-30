@@ -1,4 +1,4 @@
-import createPrimaryListener from '../src/index'
+import createPrimaryListener from '../src/index.esm'
 
 const generateUid = () => Math.floor((1 + Math.random()) * 0x10000000).toString(16).substring(1)
 

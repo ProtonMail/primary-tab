@@ -4,9 +4,9 @@
     "description": "Elect a master window with the help of the transactional guarantees in IndexedDB",
     "license": "MIT",
     "author": "Mattias Svanström <mmso@mmso.se>",
-    "main": "src/index.mjs",
+    "main": "src/index.esm.js",
     "scripts": {
-        "lint": "eslint src/*.mjs test/*.js",
+        "lint": "eslint src/*.js test/*.js",
         "test": "npm run lint && npx karma start karma.conf.js"
     },
     "devDependencies": {
